@@ -511,7 +511,7 @@ def getMultiScaleCosAffinityMatrix(
 
     Returns:
         fused_sim_d (Tensor):
-            An affinity matrix that is obtained by calculating the weighted sum of 
+            An affinity matrix that is obtained by calculating the weighted sum of
             the multiple affinity matrices from the different scales.
     """
     multiscale_weights = torch.squeeze(multiscale_weights, dim=0).to(device)
@@ -550,7 +550,18 @@ def eigDecompose(laplacian: torch.Tensor, cuda: bool, device: torch.device) -> T
         laplacian = laplacian.float().to(device)
     else:
         laplacian = laplacian.float().to(torch.device('cpu'))
-    lambdas, diffusion_map = eigh(laplacian)
+
+    #The next line crashed sometimes during diatization
+    #Error: "linalg.eigh: Argument 8 has illegal value."
+    #This happens with torch 2.6 but not 2.3
+    #lambdas, diffusion_map = eigh(laplacian)
+
+    #The next fix ensure square, hermitian/symmetric inputs with correct layout
+    lambdas, diffusion_map = torch.linalg.eigh(
+        laplacian.to(torch.float64).clone().contiguous(),  # sane dtype & layout
+        UPLO="L",  # tell the backend which triangle is valid
+    )
+
     return lambdas, diffusion_map
 
 
@@ -1176,10 +1187,10 @@ class SpeakerClustering(torch.nn.Module):
         kmeans_random_trials: int = 1,
     ) -> torch.LongTensor:
         """
-        This function takes a cosine similarity matrix `mat` and returns the speaker labels for the segments 
-        in the given input embeddings. 
-       
-        Args: 
+        This function takes a cosine similarity matrix `mat` and returns the speaker labels for the segments
+        in the given input embeddings.
+
+        Args:
             mat (Tensor):
                 Cosine similarity matrix (affinity matrix) calculated from the provided speaker embeddings.
             oracle_num_speakers (int):
@@ -1202,8 +1213,8 @@ class SpeakerClustering(torch.nn.Module):
                 This value should be optimized on a development set for best results.
                 By default, it is set to -1.0, and the function performs NME-analysis to estimate the threshold.
             kmeans_random_trials (int):
-                The number of random trials for initializing k-means clustering. More trials can result in more stable clustering. The default is 1. 
-                
+                The number of random trials for initializing k-means clustering. More trials can result in more stable clustering. The default is 1.
+
         Returns:
             Y (LongTensor):
                 Speaker labels (clustering output) in integer format for the segments in the given input embeddings.
