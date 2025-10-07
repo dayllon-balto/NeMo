@@ -150,7 +150,13 @@ def kmeans_plusplus_torch(
 
     centers = torch.zeros(n_clusters, n_features, dtype=X.dtype)
     center_id = torch.randint(0, n_samples, (1,)).long()
-    indices = torch.full([n_clusters,], -1, dtype=torch.int)
+    indices = torch.full(
+        [
+            n_clusters,
+        ],
+        -1,
+        dtype=torch.int,
+    )
 
     centers[0] = X[center_id].squeeze(0)
     indices[0] = center_id.squeeze(0)
@@ -551,12 +557,12 @@ def eigDecompose(laplacian: torch.Tensor, cuda: bool, device: torch.device) -> T
     else:
         laplacian = laplacian.float().to(torch.device('cpu'))
 
-    #The next line crashed sometimes during diatization
-    #Error: "linalg.eigh: Argument 8 has illegal value."
-    #This happens with torch 2.6 but not 2.3
-    #lambdas, diffusion_map = eigh(laplacian)
+    # The next line crashed sometimes during diatization
+    # Error: "linalg.eigh: Argument 8 has illegal value."
+    # This happens with torch 2.6 but not 2.3
+    # lambdas, diffusion_map = eigh(laplacian)
 
-    #The next fix ensure square, hermitian/symmetric inputs with correct layout
+    # The next fix ensure square, hermitian/symmetric inputs with correct layout
     lambdas, diffusion_map = torch.linalg.eigh(
         laplacian.to(torch.float64).clone().contiguous(),  # sane dtype & layout
         UPLO="L",  # tell the backend which triangle is valid
@@ -997,8 +1003,12 @@ class NMESC:
         est_spk_n_dict: Dict[int, torch.Tensor] = {}
         self.p_value_list = self.getPvalueList()
         p_volume = self.p_value_list.shape[0]
-        eig_ratio_list = torch.zeros(p_volume,)
-        est_num_of_spk_list = torch.zeros(p_volume,)
+        eig_ratio_list = torch.zeros(
+            p_volume,
+        )
+        est_num_of_spk_list = torch.zeros(
+            p_volume,
+        )
 
         if self.parallelism:
             futures: List[torch.jit.Future[torch.Tensor]] = []
